@@ -23,31 +23,31 @@ A video acquired using a hand-held camera or a camera mounted on a vehicle, typi
  * Single pass filter for streaming applications(only with Transcode).
  * Virtual-tripod-mode to get a tripod experience.
 
-**NOTE:** This readme focuses mainly on using vidstab with Ffmpeg. See 
+**NOTE:** This readme focuses mainly on using vidstab with Ffmpeg. See
 [here](http://public.hronopik.de/vid.stab) for information regarding installation, usage and examples for using vidstab with Transcode. Or contact me at georg dot martius @ web dot de
-  
+
 ## System Requirements
  * A Linux-based system
  * ffmpeg source code
  * Cmake
-  
+
 ## Installation Instructions
 
 For using vidstab library with ffmpeg, ffmpeg must to be configured using `--enable-libvidstab ` option.
 
 ### Default Build and Installation:
 ##### Installing vidstab library:
-    
-```shell    
+
+```shell
 cd path/to/vid.stab/dir/
 cmake .
 make
 sudo make install
 ```
 
-##### Installing ffmpeg:   
-   
-```shell    
+##### Installing ffmpeg:
+
+```shell
 cd path/to/ffmpeg/dir/
 ./configure --enable-gpl --enable-libvidstab <other configure options>
 make
@@ -72,24 +72,26 @@ PKG_CONFIG_PATH="path/to/install_dir/lib/pkgconfig" \
 ./configure --enable-gpl --enable-libvidstab <other optionalconfigure options>
 make
 sudo make install
-```      
-      
+```
+
 Before running ffmpeg for the first time, make sure to export `LD_LIBRARY_PATH` to point to vidstab library, e.g.,
-    
-```shell   
+
+```shell
 export LD_LIBRARY_PATH=path/to/install_dir/lib:$LD_LIBRARY_PATH
-```    
+```
 
 ## Usage instructions
 
-**Currently with ffmpeg, vidstab library must run in two-pass mode.** The first pass employs the **vidstabdetect** filter and the second pass uses the **vidstabtransform** filter. 
+**Currently with ffmpeg, vidstab library must run in two-pass mode.** The first pass employs the **vidstabdetect** filter and the second pass uses the **vidstabtransform** filter.
 
-*Single pass filter with vidstab library is only available with Transcode. The 
+*Single pass filter with vidstab library is only available with Transcode. The
 [deshake](http://www.ffmpeg.org/ffmpeg-filters.html#deshake) filter of ffmpeg can be used for a single-pass encoding, though using the vidstab two-pass filters will give superior results.*
 
 The vidstabdetect filter (in first pass) will generate a file with relative-translation and rotation-transform information about subsequent frames. This information will then be read by vidstabtransform filter (in second pass) to compensate for the jerky motions and produce a stable video output.
 
 Make sure that you use [unsharp](http://www.ffmpeg.org/ffmpeg-filters.html#unsharp-1) filter provided by ffmpeg for best results (only in second pass).
+
+NOTE: 10-bit 4:2:2 video must be downsampled to 8-bit 4:2:0 to avoid distortions like chroma shift or color bleed/smearing (see `format=yuv420p` example below).
 
 *See [the list of ffmpeg filters](http://www.ffmpeg.org/ffmpeg-filters.html) to know more about vidstabdetect, vidstabtransform and all other filters available with ffmpeg.*
 
@@ -115,32 +117,37 @@ Make sure that you use [unsharp](http://www.ffmpeg.org/ffmpeg-filters.html#unsha
   <dd>Show fields and transforms in the resulting frames for visual analysis. It accepts an integer in the range 0-2. Default value is 0, which disables any visualization.</dd>
 </dl>
 
-  
+
 
 ##### Examples:
   Use default values:
 ```shell
 ffmpeg -i input.mp4 -vf vidstabdetect -f null -
-```  
-  
+```
+
   *` -f null - ` makes sure that no output is produced as this is just the first pass. This in-turn results in faster speed.*
-  
+
   Analyzing strongly shaky video and putting the results in file `mytransforms.trf`:
 ```shell
 ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=10:accuracy=15:result="mytransforms.trf" -f null -
 ```
-  
+
   Visualizing the result of internal transformations in the resulting video:
 ```shell
 ffmpeg -i input.mp4 -vf vidstabdetect=show=1 dummy_output.mp4
 ```
 
-  Analyzing a video with medium shakiness:
+  Analyzing a video with high shakiness:
 ```shell
-ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=5:show=1 dummy_output.mp4
-```  
-  
-##### Second pass (vidstabtransform filter): 
+ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=10 dummy_output.mp4
+```
+
+  Downsampling a 10-bit 4:2:2 file to 8-bit 4:2:0 to avoid distortion like chroma shift and color bleed/smearing:
+```shell
+ffmpeg -i input.mp4 -vf format=yuv420p,vidstabdetect -f null -
+```
+
+##### Second pass (vidstabtransform filter):
 <dl>
   <dt><b>input</b></dt>
   <dd>Set path to the file used to read the transforms. Default value is <b>transforms.trf</b>.</dd>
@@ -183,12 +190,12 @@ ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=5:show=1 dummy_output.mp4
   <br>NOTE: If this mode has been used in first pass then only it should be used in second pass.</dd>
   <dt><b>debug</b></dt>
   <dd>Increase log verbosity if set to 1. Also the detected global motions are written to the temporary file  <b>global_motions.trf</b> . Default value is 0. </dd>
- 
-</dl>  
-  
+
+</dl>
+
 ##### Examples:
   Using default values:
-```shell  
+```shell
 ffmpeg -i input.mp4 -vf vidstabtransform,unsharp=5:5:0.8:3:3:0.4 out_stabilized.mp4
 ```
 Note the use of the ffmpeg's unsharp filter which is always recommended.
@@ -203,6 +210,12 @@ Smoothening the video even more:
 ```shell
 ffmpeg -i input.mp4 -vf vidstabtransform=smoothing=30:input="mytransforms.trf" out_stabilized.mp4
 ```
+
+Downsampling a 10-bit 4:2:2 file to 8-bit 4:2:0 to avoid distortion like chroma shift and color bleed/smearing:
+```shell
+ffmpeg -i input.mp4 -vf format=yuv420p,vidstabtransform out_stabilized.mp4
+```
+
 ## Developement/Contributing
 
 Vidstab is an open source library - pull requests are very welcome. Some things you might like to help us out with:
@@ -213,8 +226,7 @@ Vidstab is an open source library - pull requests are very welcome. Some things 
  * Bugs/fixes.
  * New features and improvements.
  * Documentation.
-  
-  
+
 ## License
 
 See [LICENSE](./LICENSE).
