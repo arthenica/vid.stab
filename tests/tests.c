@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
+#include <stdint.h>
 #include <math.h>
 
 #if defined(__linux__)
